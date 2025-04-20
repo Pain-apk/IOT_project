@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Tracking Robot Arm Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00BCD4;
+            --secondary: #4CAF50;
+            --background: #121212;
+            --surface: #1E1E1E;
+            --surface-light: #2D2D2D;
+            --text-primary: #E0E0E0;
+            --text-secondary: #AAAAAA;
+            --accent: #C639FF;
+            --error: #FF5252;
+            --warning: #FFB74D;
+            --success: #4CAF50;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(0, 188, 212, 0.5);
+        }
+        
+        .video-container {
+            position: relative;
+            background-color: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--surface-light);
+        }
+        
+        video, canvas {
+            width: 100%;
+            border-radius: 12px;
+            display: block;
+        }
+        
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .control-panel {
+            background-color: var(--surface);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--surface-light);
+        }
+        
+        .control-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--surface-light);
+        }
+        
+        .control-section:last-child {
+            border-bottom: none;
+        }
+        
+        h3 {
+            font-family: 'Orbitron', sans-serif;
+            margin-top: 0;
+            color: var(--primary);
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--surface-light);
+            box-sizing: border-box;
+            background-color: var(--surface-light);
+            color: var(--text-primary);
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        input::placeholder {
+            color: var(--text-secondary);
+        }
+        
+        button {
+            background-color: var(--primary);
+            color: #000;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
+        button:hover {
+            background-color: #00ACC1;
+            box-shadow: 0 0 10px rgba(0, 188, 212, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.8rem;
+        }
+        
+        .connected {
+            background-color: var(--success);
+            color: #000;
+        }
+        
+        .disconnected {
+            background-color: var(--error);
+            color: #fff;
+        }
+        
+        .error {
+            background-color: var(--warning);
+            color: #000;
+        }
+        
+        #data-display {
+            background-color: #000;
+            color: var(--accent);
+            font-family: 'Courier New', monospace;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            border: 1px solid var(--primary);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-family: 'Roboto', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <h1>Hand Tracking Robot Arm Control</h1>
+    
+    <div class="container">
+        <div class="video-container">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="output-canvas"></canvas>
+        </div>
+        
+        <div class="control-panel">
+            <div class="control-section">
+                <h3>ESP32 Connection</h3>
+                <input type="text" id="ip-address" placeholder="Enter ESP32 IP address">
+                <button id="connect-btn">Connect</button>
+                <div id="connection-status" class="status-indicator disconnected">Disconnected</div>
+            </div>
+            
+            <div class="control-section">
+                <h3>Camera Control</h3>
+                <button id="webcam-btn">Start Webcam</button>
+            </div>
+            
+            <div class="control-section">
+                <h3>Hand Position Data</h3>
+                <div id="data-display">No hand detected</div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        &copy; 2025 Hand Tracking Robot Arm Control
+    </footer>
+    
+    <!-- MediaPipe Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js"></script>
+    <!-- Custom Script -->
+    <script type="module" src="main.js"></script>
+</body>
+</html>
